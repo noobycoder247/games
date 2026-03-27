@@ -37,7 +37,14 @@ body {
   width: 100%;
   z-index: 10;
   padding: 20px;
-  pointer-events: none; /* Let clicks pass through the container */
+  pointer-events: none;
+  /* Let clicks pass through the container */
+}
+
+.ui-layer.right {
+  left: auto;
+  right: 0;
+  width: auto;
 }
 
 /* Allow interaction with the UI elements themselves */
@@ -102,6 +109,13 @@ body {
   font-weight: bold;
 }
 
+.floating-stat {
+  background: rgba(17, 26, 44, 0.8);
+  border: 1px solid var(--cyan-bright);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  font-size: 24px;
+}
+
 .cyan-text {
   color: var(--cyan-bright);
   font-size: 24px;
@@ -148,48 +162,97 @@ body {
   box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
 }
 
-.leaderboard-panel {
+.absolute-right {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 400px;
-  overflow-y: auto;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.absolute-right>* {
+  pointer-events: auto;
+}
+
+.settings-toggle-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 30;
+  transition: transform 0.2s;
+}
+
+.settings-toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+.leaderboard-title {
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--cyan-bright);
+  margin: 0 0 10px 0;
+}
+
+.leaderboard-panel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
 }
 
 .leaderboard-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 10px 15px;
-  border-radius: 8px;
-  border-left: 3px solid var(--cyan-bright);
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  background: transparent;
+  margin: 0;
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
 }
 
 .ld-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
 }
 
 .ld-rank {
-  color: #888;
-  font-weight: bold;
-  width: 30px;
+  color: var(--cyan-bright);
+  font-size: 14px;
+  width: 15px;
 }
 
 .ld-flag {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
   object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ld-code {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 1px;
+  color: white;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ld-wins {
+  color: #ffb703;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .empty-text {
@@ -230,6 +293,43 @@ body {
 .countdown-overlay p {
   font-size: 32px;
   font-weight: bold;
+}
+
+.winner-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.winner-flag {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--cyan-bright);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+}
+
+.winner-name {
+  font-size: 36px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .settings-panel {

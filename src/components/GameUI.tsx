@@ -2,25 +2,15 @@ import { getFlagUrl, COUNTRY_CODES, getCountryName } from '../utils/flags';
 import { useState, useEffect } from 'react';
 
 interface GameUIProps {
-  alive: number;
-  cycle: number;
   leaderboard: { countryCode: string; wins: number }[];
-  isPaused: boolean;
-  onTogglePause: () => void;
-  onStop: () => void;
-  tab: 'STATS' | 'LEADERBOARD' | 'SETTINGS';
-  setTab: (tab: 'STATS' | 'LEADERBOARD' | 'SETTINGS') => void;
+  tab: 'LEADERBOARD' | 'SETTINGS';
+  setTab: (tab: 'LEADERBOARD' | 'SETTINGS') => void;
   selectedCountries: string[];
   onApplySettings: (countries: string[]) => void;
 }
 
 export function GameUI({
-  alive,
-  cycle,
   leaderboard,
-  isPaused,
-  onTogglePause,
-  onStop,
   tab,
   setTab,
   selectedCountries,
@@ -59,50 +49,8 @@ export function GameUI({
 
   return (
     <div className="game-ui">
-      {/* Top Navigation Tabs */}
-      <div className="tabs">
-        <button
-          className={`tab ${tab === 'STATS' ? 'active' : ''}`}
-          onClick={() => setTab('STATS')}
-        >
-          STATS
-        </button>
-        <button
-          className={`tab ${tab === 'LEADERBOARD' ? 'active' : ''}`}
-          onClick={() => setTab('LEADERBOARD')}
-        >
-          LEADERBOARD
-        </button>
-        <button
-          className={`tab ${tab === 'SETTINGS' ? 'active' : ''}`}
-          onClick={() => setTab('SETTINGS')}
-        >
-          ⚙️
-        </button>
-      </div>
-
       <div className="ui-content">
-        {tab === 'STATS' ? (
-          <div className="stats-panel">
-            <div className="stat-box">
-              <span>Cycle:</span>
-              <span className="cyan-text">{cycle}</span>
-            </div>
-            <div className="stat-box">
-              <span>Alive:</span>
-              <span className="cyan-text">{alive}</span>
-            </div>
-            
-            <div className="controls">
-              <button className="control-btn" onClick={onTogglePause}>
-                {isPaused ? 'Resume' : 'Pause'}
-              </button>
-              <button className="control-btn pink-btn" onClick={onStop}>
-                Stop
-              </button>
-            </div>
-          </div>
-        ) : tab === 'SETTINGS' ? (
+        {tab === 'SETTINGS' ? (
           <div className="settings-panel">
             <div className="sub-tabs">
               <button 
@@ -152,19 +100,21 @@ export function GameUI({
           </div>
         ) : (
           <div className="leaderboard-panel">
-            {sortedLeaderboard.slice(0, 5).map((entry, idx) => (
+            <h3 className="leaderboard-title">Top Winners</h3>
+            {sortedLeaderboard.slice(0, 3).map((entry, idx) => (
               <div key={entry.countryCode} className="leaderboard-row">
                 <div className="ld-left">
-                  <span className="ld-rank">#{idx + 1}</span>
+                  <span className="ld-rank">{idx + 1}</span>
                   <img src={getFlagUrl(entry.countryCode)} alt={entry.countryCode} className="ld-flag" />
-                  <span className="ld-code">{entry.countryCode.toUpperCase()}</span>
+                  <span className="ld-code" title={getCountryName(entry.countryCode)}>
+                    {getCountryName(entry.countryCode).length > 10
+                      ? getCountryName(entry.countryCode).substring(0, 10) + '...'
+                      : getCountryName(entry.countryCode)}
+                  </span>
                 </div>
-                <div className="ld-wins pink-text">{entry.wins} Wins</div>
+                <div className="ld-wins">{entry.wins}W</div>
               </div>
             ))}
-            {sortedLeaderboard.length === 0 && (
-              <div className="empty-text">No wins yet...</div>
-            )}
           </div>
         )}
       </div>

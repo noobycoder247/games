@@ -1,18 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { updatePhysics } from '../engine/physics';
 import type { FlagBall } from '../engine/physics';
-import { getRandomCountries, getFlagUrl } from '../utils/flags';
+import { COUNTRY_CODES, getFlagUrl } from '../utils/flags';
 
 interface FlagBattleProps {
   onGameOver?: (winnerCode: string) => void;
-  onUpdateStats: (alive: number, leaderboardDeltas: Record<string, number>) => void;
+  onUpdateStats: (alive: number, leaderboardDeltas: Record<string, number>, totalAtStart?: number) => void;
   isPaused: boolean;
   selectedCountries?: string[];
 }
 
-const ARENA_RADIUS = 300;
-const BALL_RADIUS = 20;
-const INITIAL_BALLS = 40;
 const SPEED = 3;
 
 export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountries }: FlagBattleProps) {
@@ -26,15 +23,35 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current && canvasRef.current.parentElement) {
+        // Match exact real screen-space layout footprint assigned by CSS (.game-layer flex box)
+        canvasRef.current.width = canvasRef.current.parentElement.clientWidth;
+        canvasRef.current.height = canvasRef.current.parentElement.clientHeight;
+      }
+    };
+    handleResize(); 
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     // Initialize balls
+    const canvas = canvasRef.current;
+    const cw = canvas && canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth;
+    const ch = canvas && canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight;
+    const isDesktop = window.innerWidth > 768;
+    const dynamicRadius = Math.min(cw, ch) * (isDesktop ? 0.35 : 0.45);
+    const dynamicBallRadius = Math.max(12, dynamicRadius * (isDesktop ? 0.055 : 0.066));
+
     const countries = selectedCountries && selectedCountries.length > 0
       ? selectedCountries
-      : getRandomCountries(INITIAL_BALLS);
-      
+      : COUNTRY_CODES;
+
     ballsRef.current = countries.map((countryCode, i) => {
       // Spawn within a smaller radius so they don't spawn outside
       const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * (ARENA_RADIUS - BALL_RADIUS - 10);
+      const dist = Math.random() * (dynamicRadius - dynamicBallRadius - 10);
       const angleVel = Math.random() * Math.PI * 2;
 
       // Start fetching image
@@ -51,14 +68,14 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
         y: Math.sin(angle) * dist,
         vx: Math.cos(angleVel) * SPEED,
         vy: Math.sin(angleVel) * SPEED,
-        radius: BALL_RADIUS,
+        radius: dynamicBallRadius,
         isAlive: true,
         wins: 0,
         cooldown: 0
       };
     });
 
-    onUpdateStats(countries.length, {});
+    onUpdateStats(countries.length, {}, countries.length);
   }, []);
 
   const draw = () => {
@@ -70,13 +87,15 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const isDesktop = window.innerWidth > 768;
+    const cy = canvas.height / 2 - (isDesktop ? canvas.height * 0.05 : 0);
+    const dynamicRadius = Math.min(canvas.width, canvas.height) * (isDesktop ? 0.35 : 0.45);
 
     // Draw Arena
     ctx.beginPath();
     const gapStart = rotationRef.current + Math.PI / 2 + 0.2;
     const gapEnd = rotationRef.current + Math.PI / 2 - 0.2 + Math.PI * 2;
-    ctx.arc(cx, cy, ARENA_RADIUS, gapStart, gapEnd);
+    ctx.arc(cx, cy, dynamicRadius, gapStart, gapEnd);
     ctx.strokeStyle = '#0ff'; // Cyan glow
     ctx.lineWidth = 6;
     ctx.shadowColor = '#0ff';
@@ -131,23 +150,36 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
   const loop = () => {
     if (!isPaused) {
       rotationRef.current += 0.01;
+      const previousAliveCount = ballsRef.current.filter(b => !b.hasExited).length;
+
+      const canvasH = canvasRef.current ? canvasRef.current.height : window.innerHeight;
+      const canvasW = canvasRef.current ? canvasRef.current.width : window.innerWidth;
+      const isDesktop = window.innerWidth > 768;
+      const cyOffset = isDesktop ? canvasH * 0.05 : 0;
+      const dynamicRadius = Math.min(canvasW, canvasH) * (isDesktop ? 0.35 : 0.45);
+      const dynamicBallRadius = Math.max(12, dynamicRadius * (isDesktop ? 0.055 : 0.066));
+
+      // Smoothly update ball radii mapping if screen resizes dynamically
+      ballsRef.current.forEach(b => b.radius = dynamicBallRadius);
+
       const { nextBalls, winnersDeltas } = updatePhysics(
         ballsRef.current,
-        ARENA_RADIUS,
+        dynamicRadius,
         1,
-        canvasRef.current ? canvasRef.current.height / 2 : 400,
-        canvasRef.current ? canvasRef.current.width / 2 : 400,
-        rotationRef.current
+        canvasH / 2 + cyOffset, // floor relative to cy
+        canvasW / 2,
+        rotationRef.current,
+        isDesktop ? 100 : 60 // maxFloorBalls
       );
       ballsRef.current = nextBalls;
 
-      const aliveCount = nextBalls.filter(b => !b.hasExited).length;
-      
-      if (Object.keys(winnersDeltas).length > 0 || aliveCount !== ballsRef.current.filter(b => !b.hasExited).length) {
-        onUpdateStats(aliveCount, winnersDeltas);
+      const currentAliveCount = nextBalls.filter(b => !b.hasExited).length;
+
+      if (Object.keys(winnersDeltas).length > 0 || currentAliveCount !== previousAliveCount) {
+        onUpdateStats(currentAliveCount, winnersDeltas);
       }
 
-      if (aliveCount <= 1 && !isGameOverRef.current) {
+      if (currentAliveCount <= 1 && !isGameOverRef.current) {
         isGameOverRef.current = true;
         const winner = nextBalls.find(b => !b.hasExited);
         if (onGameOver) {
@@ -171,9 +203,7 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <canvas
         ref={canvasRef}
-        width={800}
-        height={1000}
-        style={{ maxWidth: '100%', height: 'auto', outline: 'none' }}
+        style={{ width: '100%', height: '100%', display: 'block', outline: 'none' }}
       />
     </div>
   );

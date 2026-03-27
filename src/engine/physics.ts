@@ -10,8 +10,12 @@ export interface FlagBall {
   wins: number;
   cooldown: number; // cooldown frames before it can kill again
   hasExited?: boolean;
+  exitOrder?: number;
   isAtRest?: boolean;
 }
+
+// Global exit tracker for culling
+let globalExitCounter = 0;
 
 // Elastic collision resolution between two balls
 function resolveCollision(b1: FlagBall, b2: FlagBall) {
@@ -52,7 +56,8 @@ export function updatePhysics(
   speedMultiplier: number = 1,
   floorY: number = 400,
   wallX: number = 400,
-  rotationAngle: number = 0
+  rotationAngle: number = 0,
+  maxFloorBalls: number = 50
 ): { nextBalls: FlagBall[]; winnersDeltas: Record<string, number> } {
   const nextBalls = [...balls];
   const winnersDeltas: Record<string, number> = {};
@@ -107,7 +112,10 @@ export function updatePhysics(
       while (diff < -Math.PI) diff += 2 * Math.PI;
 
       if (Math.abs(diff) <= 0.2) {
-        b.hasExited = true;
+        if (!b.hasExited) {
+          b.hasExited = true;
+          b.exitOrder = globalExitCounter++;
+        }
         continue;
       }
 
@@ -149,6 +157,27 @@ export function updatePhysics(
         if (b1.isAtRest && b1.hasExited) b1.isAtRest = false;
         if (b2.isAtRest && b2.hasExited) b2.isAtRest = false;
       }
+    }
+  }
+
+  // 4. Enforce strict uniform speed inside arena
+  for (const b of nextBalls) {
+    if (b.isAlive && !b.hasExited) {
+      const speed = Math.hypot(b.vx, b.vy);
+      if (speed !== 0) {
+        b.vx = (b.vx / speed) * 3;
+        b.vy = (b.vy / speed) * 3;
+      }
+    }
+  }
+
+  // 5. Enforce floor limit
+  const exitedBalls = nextBalls.filter(b => b.hasExited && b.isAlive);
+  if (exitedBalls.length > maxFloorBalls) {
+    exitedBalls.sort((a, b) => (a.exitOrder || 0) - (b.exitOrder || 0));
+    const toRemove = exitedBalls.length - maxFloorBalls;
+    for (let i = 0; i < toRemove; i++) {
+      exitedBalls[i].isAlive = false;
     }
   }
 
