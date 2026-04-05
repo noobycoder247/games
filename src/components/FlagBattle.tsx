@@ -6,13 +6,14 @@ import { COUNTRY_CODES, getFlagUrl } from '../utils/flags';
 interface FlagBattleProps {
   onGameOver?: (winnerCode: string) => void;
   onUpdateStats: (alive: number, leaderboardDeltas: Record<string, number>, totalAtStart?: number) => void;
+  onSurvivorsUpdate?: (survivors: string[]) => void;
   isPaused: boolean;
   selectedCountries?: string[];
 }
 
-const SPEED = 3;
+const SPEED = 2;
 
-export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountries }: FlagBattleProps) {
+export function FlagBattle({ onGameOver, onUpdateStats, onSurvivorsUpdate, isPaused, selectedCountries }: FlagBattleProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ballsRef = useRef<FlagBall[]>([]);
   const requestRef = useRef<number>(0);
@@ -30,7 +31,7 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
         canvasRef.current.height = canvasRef.current.parentElement.clientHeight;
       }
     };
-    handleResize(); 
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -177,6 +178,12 @@ export function FlagBattle({ onGameOver, onUpdateStats, isPaused, selectedCountr
 
       if (Object.keys(winnersDeltas).length > 0 || currentAliveCount !== previousAliveCount) {
         onUpdateStats(currentAliveCount, winnersDeltas);
+        if (onSurvivorsUpdate) {
+          const survivorCodes = nextBalls
+            .filter(b => !b.hasExited && b.isAlive)
+            .map(b => b.countryCode);
+          onSurvivorsUpdate(survivorCodes);
+        }
       }
 
       if (currentAliveCount <= 1 && !isGameOverRef.current) {

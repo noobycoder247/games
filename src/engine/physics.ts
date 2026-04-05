@@ -165,8 +165,8 @@ export function updatePhysics(
     if (b.isAlive && !b.hasExited) {
       const speed = Math.hypot(b.vx, b.vy);
       if (speed !== 0) {
-        b.vx = (b.vx / speed) * 3;
-        b.vy = (b.vy / speed) * 3;
+        b.vx = (b.vx / speed) * 2;
+        b.vy = (b.vy / speed) * 2;
       }
     }
   }

@@ -41,6 +41,13 @@ body {
   /* Let clicks pass through the container */
 }
 
+.ui-layer.absolute-right {
+  left: auto;
+  right: 16px;
+  width: auto;
+  padding: 20px 0 20px 0;
+}
+
 .ui-layer.right {
   left: auto;
   right: 0;
@@ -87,7 +94,7 @@ body {
   background: rgba(17, 26, 44, 0.7);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  padding: 20px;
+  padding: 18px;
   border: 1px solid rgba(0, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
@@ -191,18 +198,18 @@ body {
 }
 
 .leaderboard-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   text-align: center;
   color: var(--cyan-bright);
-  margin: 0 0 10px 0;
+  margin: 0 0 9px 0;
 }
 
 .leaderboard-panel {
   background: transparent;
   border: none;
   padding: 0;
-  width: 180px;
+  width: 162px;
   display: flex;
   flex-direction: column;
 }
@@ -211,7 +218,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 7px 0;
   border-bottom: 1px solid rgba(0, 255, 255, 0.1);
   background: transparent;
   margin: 0;
@@ -229,13 +236,13 @@ body {
 
 .ld-rank {
   color: var(--cyan-bright);
-  font-size: 14px;
-  width: 15px;
+  font-size: 13px;
+  width: 14px;
 }
 
 .ld-flag {
-  width: 24px;
-  height: 16px;
+  width: 22px;
+  height: 14px;
   border-radius: 2px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -243,7 +250,7 @@ body {
 
 .ld-code {
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -252,7 +259,44 @@ body {
 .ld-wins {
   color: #ffb703;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.game-stats-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(17, 26, 44, 0.4);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.gs-round {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gs-number {
+  color: var(--cyan-bright);
+  font-size: 16px;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+.gs-survival {
+  color: var(--pink-bright);
+  font-size: 15px;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
 }
 
 .empty-text {
@@ -433,4 +477,131 @@ body {
 .flag-item span {
   font-size: 12px;
   font-weight: bold;
+}
+
+/* Agent Video Box */
+.agent-video-box {
+  position: absolute;
+  top: 70px;
+  left: 20px;
+  width: 475px;
+  max-width: calc(100vw - 300px);
+  /* Enforces a strict gap from the leaderboard */
+  border-radius: 12px;
+  border: 3px solid var(--cyan-bright);
+  box-shadow: 0 0 15px var(--cyan-bright), 0 0 25px var(--pink-bright);
+  overflow: hidden;
+  z-index: 50;
+  display: flex;
+  background: #000;
+}
+
+.agent-video-box video {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  aspect-ratio: 16 / 9;
+}
+
+/* Survivor Ticker */
+.survivor-ticker {
+  position: absolute;
+  left: 10px;
+  top: calc(12px + 50vw * 9/16 + 8px);
+  /* below video box: top + video height + gap */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 20px;
+  padding: 4px 12px 4px 6px;
+  z-index: 51;
+  max-width: 50vw;
+}
+
+.survivor-ticker-flag {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--cyan-bright);
+  flex-shrink: 0;
+}
+
+.survivor-ticker-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+}
+
+.typewriter-cursor {
+  color: var(--cyan-bright);
+  font-weight: 300;
+  animation: blink 0.8s step-end infinite;
+  margin-left: 1px;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .settings-toggle-btn {
+    display: none;
+  }
+
+  /* Video box: 50% of screen width, top-left */
+  .agent-video-box {
+    width: 50vw !important;
+    max-width: 50vw !important;
+    height: auto;
+    top: 12px;
+    left: 10px;
+    border-width: 2px;
+    border-radius: 8px;
+  }
+
+  .agent-video-box video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Leaderboard panel: ~42vw wide, top-right */
+  .leaderboard-panel {
+    width: 42vw !important;
+    min-width: 130px;
+    max-width: 190px;
+  }
+
+  /* Align UI overlay top with video box top */
+  .ui-layer.absolute-right {
+    top: 12px;
+    right: 10px;
+    padding: 0;
+  }
+
+  .game-ui {
+    max-width: unset;
+  }
+
+  .ui-content {
+    padding: 8px 10px;
+  }
 }

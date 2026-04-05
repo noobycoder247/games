@@ -7,6 +7,9 @@ interface GameUIProps {
   setTab: (tab: 'LEADERBOARD' | 'SETTINGS') => void;
   selectedCountries: string[];
   onApplySettings: (countries: string[]) => void;
+  cycle: number;
+  alive: number;
+  totalParticipants: number;
 }
 
 export function GameUI({
@@ -14,7 +17,10 @@ export function GameUI({
   tab,
   setTab,
   selectedCountries,
-  onApplySettings
+  onApplySettings,
+  cycle,
+  alive,
+  totalParticipants
 }: GameUIProps) {
   // Sort leaderboard descending by wins
   const sortedLeaderboard = [...leaderboard].sort((a, b) => b.wins - a.wins);
@@ -118,6 +124,16 @@ export function GameUI({
           </div>
         )}
       </div>
+      {tab === 'LEADERBOARD' && (
+        <div className="game-stats-footer">
+          <span className="gs-round">
+            ROUND <span className="gs-number">{cycle}</span>
+          </span>
+          <span className="gs-survival">
+            {alive}/{totalParticipants}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
