@@ -10,9 +10,9 @@ interface FlagBattleProps {
   isPaused: boolean;
   selectedCountries?: string[];
   lastAddedCountry?: { code: string; userName?: string; timestamp: number } | null;
+  speed?: number;
 }
 
-const SPEED = 2;
 
 export function FlagBattle({ 
   onGameOver, 
@@ -20,7 +20,8 @@ export function FlagBattle({
   onSurvivorsUpdate, 
   isPaused, 
   selectedCountries,
-  lastAddedCountry = null
+  lastAddedCountry = null,
+  speed = 2
 }: FlagBattleProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ballsRef = useRef<FlagBall[]>([]);
@@ -75,8 +76,8 @@ export function FlagBattle({
         countryCode,
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
-        vx: Math.cos(angleVel) * SPEED,
-        vy: Math.sin(angleVel) * SPEED,
+        vx: Math.cos(angleVel) * speed,
+        vy: Math.sin(angleVel) * speed,
         radius: dynamicBallRadius,
         isAlive: true,
         wins: 0,
@@ -118,8 +119,8 @@ export function FlagBattle({
       userName: lastAddedCountry.userName,
       x: Math.cos(angle) * dist,
       y: Math.sin(angle) * dist,
-      vx: Math.cos(angle) * SPEED,
-      vy: Math.sin(angle) * SPEED,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
       radius: dynamicBallRadius,
       isAlive: true,
       wins: 0,
@@ -212,7 +213,8 @@ export function FlagBattle({
 
   const loop = () => {
     if (!isPaused) {
-      rotationRef.current += 0.01;
+      const speedFactor = speed / 2;
+      rotationRef.current += 0.01 * speedFactor;
       const previousAliveCount = ballsRef.current.filter(b => !b.hasExited).length;
 
       const canvasH = canvasRef.current ? canvasRef.current.height : window.innerHeight;
@@ -228,7 +230,7 @@ export function FlagBattle({
       const { nextBalls, winnersDeltas } = updatePhysics(
         ballsRef.current,
         dynamicRadius,
-        1,
+        speed / 2,
         canvasH / 2 + cyOffset, // floor relative to cy
         canvasW / 2,
         rotationRef.current,

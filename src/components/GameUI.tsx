@@ -11,7 +11,8 @@ interface GameUIProps {
   pointsDeduction: number;
   enableBomb: boolean;
   enableMovingBomb: boolean;
-  onApplySettings: (countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean) => void;
+  speed: number;
+  onApplySettings: (countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean, speed: number) => void;
   cycle: number;
   alive: number;
   totalParticipants: number;
@@ -32,6 +33,7 @@ export function GameUI({
   pointsDeduction,
   enableBomb,
   enableMovingBomb,
+  speed,
   onApplySettings,
   cycle,
   alive,
@@ -50,6 +52,7 @@ export function GameUI({
   const [localPointsDeduction, setLocalPointsDeduction] = useState(pointsDeduction);
   const [localEnableBomb, setLocalEnableBomb] = useState(enableBomb);
   const [localEnableMovingBomb, setLocalEnableMovingBomb] = useState(enableMovingBomb);
+  const [localSpeed, setLocalSpeed] = useState(speed);
   const [settingsTab, setSettingsTab] = useState<'FLAGS' | 'YOUTUBE'>('FLAGS');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -63,7 +66,8 @@ export function GameUI({
     setLocalPointsDeduction(pointsDeduction);
     setLocalEnableBomb(enableBomb);
     setLocalEnableMovingBomb(enableMovingBomb);
-  }, [selectedCountries, enableDangerCircle, enableSafeArch, pointsDeduction, enableBomb, enableMovingBomb]);
+    setLocalSpeed(speed);
+  }, [selectedCountries, enableDangerCircle, enableSafeArch, pointsDeduction, enableBomb, enableMovingBomb, speed]);
 
   const filteredCodes = COUNTRY_CODES.filter(code => {
     const name = getCountryName(code).toLowerCase();
@@ -81,7 +85,7 @@ export function GameUI({
   };
 
   const handleApply = () => {
-    onApplySettings(localSelection, localDangerCircle, localSafeArch, localPointsDeduction, localEnableBomb, localEnableMovingBomb);
+    onApplySettings(localSelection, localDangerCircle, localSafeArch, localPointsDeduction, localEnableBomb, localEnableMovingBomb, localSpeed);
     setTab('LEADERBOARD');
   };
 
@@ -152,6 +156,19 @@ export function GameUI({
                         style={{ flex: 1, accentColor: '#ff00ff' }}
                       />
                       <span style={{ minWidth: '25px', fontWeight: 'bold', color: '#ff00ff' }}>{localPointsDeduction}</span>
+                    </div>
+                    <div className="speed-settings" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '12px', opacity: 0.8 }}>Game Speed:</label>
+                      <input 
+                        type="range" 
+                        min="0.1" 
+                        max="10" 
+                        step="0.1"
+                        value={localSpeed} 
+                        onChange={(e) => setLocalSpeed(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00ffff' }}
+                      />
+                      <span style={{ minWidth: '25px', fontWeight: 'bold', color: '#00ffff' }}>{localSpeed}</span>
                     </div>
                   </div>
                 )}

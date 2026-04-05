@@ -101,6 +101,13 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
     } catch (e) {}
     return false; // Default to false? Or true? Let's go with false to avoid crowding by default
   });
+  const [speed, setSpeed] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('collider_speed');
+      if (saved !== null && !isNaN(Number(saved))) return Number(JSON.parse(saved));
+    } catch (e) {}
+    return 2;
+  });
   const [youtubeConfig, setYoutubeConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('collider_youtubeConfig');
@@ -401,7 +408,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
     }
   }, [cycle, countdown]);
 
-  const handleApplySettings = useCallback((countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean) => {
+  const handleApplySettings = useCallback((countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean, speedControl: number) => {
     setSelectedCountries(countries);
     localStorage.setItem(`selectedCountries_${gameMode}`, JSON.stringify(countries));
     
@@ -419,6 +426,9 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
 
     setEnableMovingBomb(movingBomb);
     localStorage.setItem('collider_enableMovingBomb', JSON.stringify(movingBomb));
+
+    setSpeed(speedControl);
+    localStorage.setItem('collider_speed', JSON.stringify(speedControl));
 
     setCycle(1);
     leaderboardRef.current = {};
@@ -470,6 +480,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
           pointsDeduction={pointsDeduction}
           enableBomb={enableBomb}
           enableMovingBomb={enableMovingBomb}
+          speed={speed}
           onApplySettings={handleApplySettings}
           cycle={cycle}
           alive={alive}
@@ -498,6 +509,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
             isPaused={isPaused}
             selectedCountries={selectedCountries}
             lastAddedCountry={lastAddedCountry}
+            speed={speed}
           />
         ) : (
           <FlagCollider
@@ -513,6 +525,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
             enableBomb={enableBomb}
             enableMovingBomb={enableMovingBomb}
             lastAddedCountry={lastAddedCountry}
+            speed={speed}
           />
         )}
       </div>

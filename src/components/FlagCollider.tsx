@@ -15,9 +15,9 @@ interface FlagColliderProps {
   enableBomb?: boolean;
   enableMovingBomb?: boolean;
   lastAddedCountry?: { code: string; userName?: string; timestamp: number } | null;
+  speed?: number;
 }
 
-const SPEED = 2;
 
 export function FlagCollider({ 
   onGameOver, 
@@ -30,7 +30,8 @@ export function FlagCollider({
   pointsDeduction = 10,
   enableBomb = true,
   enableMovingBomb = false,
-  lastAddedCountry = null
+  lastAddedCountry = null,
+  speed = 2
 }: FlagColliderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ballsRef = useRef<ColliderBall[]>([]);
@@ -86,8 +87,8 @@ export function FlagCollider({
         countryCode,
         x: Math.cos(angle) * dist,
         y: Math.sin(angle) * dist,
-        vx: Math.cos(angleVel) * SPEED,
-        vy: Math.sin(angleVel) * SPEED,
+        vx: Math.cos(angleVel) * speed,
+        vy: Math.sin(angleVel) * speed,
         radius: dynamicBallRadius,
         isAlive: true,
         wins: 0,
@@ -133,8 +134,8 @@ export function FlagCollider({
       userName: lastAddedCountry.userName,
       x: Math.cos(angle) * dist,
       y: Math.sin(angle) * dist,
-      vx: Math.cos(angle) * SPEED,
-      vy: Math.sin(angle) * SPEED,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
       radius: dynamicBallRadius,
       isAlive: true,
       wins: 0,
@@ -177,7 +178,8 @@ export function FlagCollider({
     ctx.stroke();
 
     // Calculate dynamic safe arc length
-    const shrinkDuration = 3600; // Shrink over ~60 secs at 60fps
+    const timeFactor = 2 / speed;
+    const shrinkDuration = 3600 * timeFactor; 
     const progress = Math.min(1, framesRef.current / shrinkDuration);
     const safeRatio = 1.0 - (0.9 * progress); // 100% down to 10%
     const safeArcLength = Math.PI * 2 * safeRatio;
@@ -336,7 +338,8 @@ export function FlagCollider({
   const loop = () => {
     if (!isPaused) {
       framesRef.current++;
-      rotationRef.current += 0.015; // rotate safe zone
+      const speedFactor = speed / 2;
+      rotationRef.current += 0.015 * speedFactor; // rotate safe zone
       const aliveFlags = ballsRef.current.filter(b => b.isAlive && !b.isBomb);
       const previousAliveCount = aliveFlags.length;
 
@@ -349,7 +352,8 @@ export function FlagCollider({
       // Smoothly update ball radii mapping if screen resizes dynamically
       ballsRef.current.forEach(b => b.radius = dynamicBallRadius);
 
-      const shrinkDuration = 3600;
+      const timeFactor = 2 / speed;
+      const shrinkDuration = 3600 * timeFactor;
       const progress = Math.min(1, framesRef.current / shrinkDuration);
       const safeRatio = 1.0 - (0.9 * progress);
       const safeArcLength = Math.PI * 2 * safeRatio;
@@ -362,8 +366,8 @@ export function FlagCollider({
           countryCode: 'bomb',
           x: 0,
           y: 0,
-          vx: Math.cos(angle) * SPEED * 1.5,
-          vy: Math.sin(angle) * SPEED * 1.5,
+          vx: Math.cos(angle) * speed * 1.5,
+          vy: Math.sin(angle) * speed * 1.5,
           radius: dynamicBallRadius * 1.2,
           isAlive: true,
           wins: 0,
@@ -376,7 +380,7 @@ export function FlagCollider({
       const { nextBalls, winnersDeltas } = updateColliderPhysics(
         ballsRef.current,
         dynamicRadius,
-        1,
+        speed / 2,
         rotationRef.current,
         safeArcLength,
         enableDangerCircle,
