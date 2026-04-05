@@ -1,24 +1,129 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { FlagBattle } from './components/FlagBattle';
+import { FlagCollider } from './components/FlagCollider';
 import { GameUI } from './components/GameUI';
-import { getFlagUrl, getCountryName } from './utils/flags';
+import { getFlagUrl, getCountryName, COUNTRY_CODES, POPULAR_15_COUNTRIES } from './utils/flags';
 import winnerAudio from './assets/winner.mp3';
 import poopingAudio from './assets/pooping.mp3';
 import agent1Video from './assets/agent1.mp4';
 
 
-function App() {
+function Home() {
+  const navigate = useNavigate();
+  return (
+    <div className="home-container" style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', width: '100vw', background: '#0b0f19', color: '#fff'
+    }}>
+      <h1 style={{ fontSize: '48px', color: '#00ffff', textShadow: '0 0 20px rgba(0, 255, 255, 0.8)', marginBottom: '40px' }}>
+        Select Game Mode
+      </h1>
+      <div style={{ display: 'flex', gap: '30px' }}>
+        <div 
+          onClick={() => navigate('/fall')}
+          style={{
+            padding: '30px 40px', background: 'rgba(0, 255, 255, 0.1)', border: '2px solid #00ffff',
+            borderRadius: '12px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 255, 255, 0.6)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+        >
+          <h2 style={{ color: '#fff', marginBottom: '10px' }}>Flag Fall</h2>
+          <p style={{ color: '#aaa', maxWidth: '200px' }}>Flags compete around an arena with a deadly escape hole.</p>
+        </div>
+        <div 
+          onClick={() => navigate('/collider')}
+          style={{
+            padding: '30px 40px', background: 'rgba(255, 0, 255, 0.1)', border: '2px solid #ff00ff',
+            borderRadius: '12px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 25px rgba(255, 0, 255, 0.6)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+        >
+          <h2 style={{ color: '#fff', marginBottom: '10px' }}>Flag Collider</h2>
+          <p style={{ color: '#aaa', maxWidth: '200px' }}>A closed arena where flags bump to reduce each other's 100 HP.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
+  const navigate = useNavigate();
   const [alive, setAlive] = useState(0);
   const [cycle, setCycle] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [tab, setTab] = useState<'LEADERBOARD' | 'SETTINGS'>('LEADERBOARD');
   const [gameKey, setGameKey] = useState(Date.now());
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`selectedCountries_${initialMode}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse cached settings');
+    }
+    return initialMode === 'COLLIDER' ? POPULAR_15_COUNTRIES : COUNTRY_CODES;
+  });
+  const [enableDangerCircle, setEnableDangerCircle] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('collider_dangerCircle');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return true;
+  });
+  const [enableSafeArch, setEnableSafeArch] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('collider_safeArch');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return true;
+  });
+  const [pointsDeduction, setPointsDeduction] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('collider_pointsDeduction');
+      if (saved !== null && !isNaN(Number(saved))) return Number(JSON.parse(saved));
+    } catch (e) {}
+    return 10;
+  });
+  const [enableBomb, setEnableBomb] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('collider_enableBomb');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return true;
+  });
+  const [enableMovingBomb, setEnableMovingBomb] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('collider_enableMovingBomb');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return false; // Default to false? Or true? Let's go with false to avoid crowding by default
+  });
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [winner, setWinner] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<'FALL' | 'COLLIDER'>(initialMode);
   const audioRef = useRef<HTMLAudioElement>(null);
   const poopingAudioRef = useRef<HTMLAudioElement>(null);
+
+  // Sync mode changes internally via UI toggles without tearing down the entire app
+  useEffect(() => {
+    setGameMode(initialMode);
+    try {
+      const saved = localStorage.getItem(`selectedCountries_${initialMode}`);
+      if (saved) {
+        setSelectedCountries(JSON.parse(saved));
+      } else {
+        setSelectedCountries(initialMode === 'COLLIDER' ? POPULAR_15_COUNTRIES : COUNTRY_CODES);
+      }
+    } catch (e) {
+      setSelectedCountries(initialMode === 'COLLIDER' ? POPULAR_15_COUNTRIES : COUNTRY_CODES);
+    }
+    setGameKey(Date.now());
+    setCycle(1);
+    leaderboardRef.current = {};
+  }, [initialMode]);
 
   // Survivor spotlight — all driven by refs, zero React effect chain
   const [spotlightCode, setSpotlightCode] = useState<string | null>(null);
@@ -201,15 +306,32 @@ function App() {
     }
   }, [cycle, countdown]);
 
-  const handleApplySettings = useCallback((countries: string[]) => {
+  const handleApplySettings = useCallback((countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean) => {
     setSelectedCountries(countries);
+    localStorage.setItem(`selectedCountries_${gameMode}`, JSON.stringify(countries));
+    
+    setEnableDangerCircle(dangerCircle);
+    localStorage.setItem('collider_dangerCircle', JSON.stringify(dangerCircle));
+    
+    setEnableSafeArch(safeArch);
+    localStorage.setItem('collider_safeArch', JSON.stringify(safeArch));
+
+    setPointsDeduction(deduction);
+    localStorage.setItem('collider_pointsDeduction', JSON.stringify(deduction));
+
+    setEnableBomb(bomb);
+    localStorage.setItem('collider_enableBomb', JSON.stringify(bomb));
+
+    setEnableMovingBomb(movingBomb);
+    localStorage.setItem('collider_enableMovingBomb', JSON.stringify(movingBomb));
+
     setCycle(1);
     leaderboardRef.current = {};
     setIsPaused(false);
     setCountdown(null);
     setWinner(null);
     setGameKey(Date.now());
-  }, []);
+  }, [gameMode]);
 
   const leaderboardArray = Object.entries(leaderboardRef.current).map(([code, wins]) => ({
     countryCode: code,
@@ -220,6 +342,20 @@ function App() {
     <div className="app-container">
       <audio ref={audioRef} src={winnerAudio} preload="auto" />
       <audio ref={poopingAudioRef} src={poopingAudio} preload="auto" />
+      
+      {/* Home Navigation button */}
+      <button 
+        onClick={() => navigate('/')}
+        style={{
+          position: 'absolute', top: '20px', left: '70px', background: 'transparent',
+          border: '2px solid var(--cyan-bright)', color: 'var(--cyan-bright)',
+          padding: '4px 12px', borderRadius: '8px', cursor: 'pointer', zIndex: 30,
+          fontWeight: 'bold'
+        }}
+      >
+        Home
+      </button>
+
       <button
         className="settings-toggle-btn"
         onClick={() => setTab(t => t === 'SETTINGS' ? 'LEADERBOARD' : 'SETTINGS')}
@@ -234,23 +370,52 @@ function App() {
           tab={tab}
           setTab={setTab}
           selectedCountries={selectedCountries}
+          enableDangerCircle={enableDangerCircle}
+          enableSafeArch={enableSafeArch}
+          pointsDeduction={pointsDeduction}
+          enableBomb={enableBomb}
+          enableMovingBomb={enableMovingBomb}
           onApplySettings={handleApplySettings}
           cycle={cycle}
           alive={alive}
           totalParticipants={totalParticipants}
+          gameMode={gameMode}
+          setGameMode={(mode) => {
+            if (mode === 'COLLIDER') {
+              navigate('/collider');
+            } else {
+              navigate('/fall');
+            }
+          }}
         />
       </div>
 
       {/* Game Canvas */}
       <div className="game-layer">
-        <FlagBattle
-          key={gameKey}
-          onGameOver={handleGameOver}
-          onUpdateStats={handleUpdateStats}
-          onSurvivorsUpdate={handleSurvivorsUpdate}
-          isPaused={isPaused}
-          selectedCountries={selectedCountries}
-        />
+        {gameMode === 'FALL' ? (
+          <FlagBattle
+            key={gameKey}
+            onGameOver={handleGameOver}
+            onUpdateStats={handleUpdateStats}
+            onSurvivorsUpdate={handleSurvivorsUpdate}
+            isPaused={isPaused}
+            selectedCountries={selectedCountries}
+          />
+        ) : (
+          <FlagCollider
+            key={gameKey}
+            onGameOver={handleGameOver}
+            onUpdateStats={handleUpdateStats}
+            onSurvivorsUpdate={handleSurvivorsUpdate}
+            isPaused={isPaused}
+            selectedCountries={selectedCountries}
+            enableDangerCircle={enableDangerCircle}
+            enableSafeArch={enableSafeArch}
+            pointsDeduction={pointsDeduction}
+            enableBomb={enableBomb}
+            enableMovingBomb={enableMovingBomb}
+          />
+        )}
       </div>
 
       {countdown !== null && (
@@ -283,6 +448,18 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/fall" element={<GameContainer initialMode="FALL" />} />
+        <Route path="/collider" element={<GameContainer initialMode="COLLIDER" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

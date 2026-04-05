@@ -14,6 +14,10 @@ export const COUNTRY_CODES = [
   "ua", "ug", "um", "us", "uy", "uz", "va", "vc", "ve", "vg", "vi", "vn", "vu", "wf", "ws", "ye", "yt", "za", "zm", "zw"
 ];
 
+export const POPULAR_15_COUNTRIES = [
+  "cn", "in", "us", "id", "pk", "br", "ng", "bd", "ru", "mx", "jp", "de", "gb", "fr", "it"
+];
+
 export function getRandomCountries(count: number): string[] {
   const shuffled = [...COUNTRY_CODES].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);

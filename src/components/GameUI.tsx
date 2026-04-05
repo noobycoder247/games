@@ -6,10 +6,17 @@ interface GameUIProps {
   tab: 'LEADERBOARD' | 'SETTINGS';
   setTab: (tab: 'LEADERBOARD' | 'SETTINGS') => void;
   selectedCountries: string[];
-  onApplySettings: (countries: string[]) => void;
+  enableDangerCircle: boolean;
+  enableSafeArch: boolean;
+  pointsDeduction: number;
+  enableBomb: boolean;
+  enableMovingBomb: boolean;
+  onApplySettings: (countries: string[], dangerCircle: boolean, safeArch: boolean, deduction: number, bomb: boolean, movingBomb: boolean) => void;
   cycle: number;
   alive: number;
   totalParticipants: number;
+  gameMode: 'FALL' | 'COLLIDER';
+  setGameMode: (mode: 'FALL' | 'COLLIDER') => void;
 }
 
 export function GameUI({
@@ -17,21 +24,38 @@ export function GameUI({
   tab,
   setTab,
   selectedCountries,
+  enableDangerCircle,
+  enableSafeArch,
+  pointsDeduction,
+  enableBomb,
+  enableMovingBomb,
   onApplySettings,
   cycle,
   alive,
-  totalParticipants
+  totalParticipants,
+  gameMode,
+  setGameMode
 }: GameUIProps) {
   // Sort leaderboard descending by wins
   const sortedLeaderboard = [...leaderboard].sort((a, b) => b.wins - a.wins);
 
   const [localSelection, setLocalSelection] = useState<string[]>(selectedCountries);
+  const [localDangerCircle, setLocalDangerCircle] = useState(enableDangerCircle);
+  const [localSafeArch, setLocalSafeArch] = useState(enableSafeArch);
+  const [localPointsDeduction, setLocalPointsDeduction] = useState(pointsDeduction);
+  const [localEnableBomb, setLocalEnableBomb] = useState(enableBomb);
+  const [localEnableMovingBomb, setLocalEnableMovingBomb] = useState(enableMovingBomb);
   const [settingsTab, setSettingsTab] = useState<'FLAGS'>('FLAGS');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setLocalSelection(selectedCountries);
-  }, [selectedCountries]);
+    setLocalDangerCircle(enableDangerCircle);
+    setLocalSafeArch(enableSafeArch);
+    setLocalPointsDeduction(pointsDeduction);
+    setLocalEnableBomb(enableBomb);
+    setLocalEnableMovingBomb(enableMovingBomb);
+  }, [selectedCountries, enableDangerCircle, enableSafeArch, pointsDeduction, enableBomb, enableMovingBomb]);
 
   const filteredCodes = COUNTRY_CODES.filter(code => {
     const name = getCountryName(code).toLowerCase();
@@ -49,7 +73,7 @@ export function GameUI({
   };
 
   const handleApply = () => {
-    onApplySettings(localSelection);
+    onApplySettings(localSelection, localDangerCircle, localSafeArch, localPointsDeduction, localEnableBomb, localEnableMovingBomb);
     setTab('LEADERBOARD');
   };
 
@@ -69,6 +93,54 @@ export function GameUI({
 
             {settingsTab === 'FLAGS' && (
               <>
+                <div className="game-mode-selector" style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                  <button 
+                    className={`control-btn small-btn ${gameMode === 'FALL' ? 'pink-btn' : ''}`}
+                    onClick={() => setGameMode('FALL')}
+                  >
+                    Flag Fall
+                  </button>
+                  <button 
+                    className={`control-btn small-btn ${gameMode === 'COLLIDER' ? 'pink-btn' : ''}`}
+                    onClick={() => setGameMode('COLLIDER')}
+                  >
+                    Flag Collider
+                  </button>
+                </div>
+                {gameMode === 'COLLIDER' && (
+                  <div className="settings-options" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={localDangerCircle} onChange={(e) => setLocalDangerCircle(e.target.checked)} />
+                        Danger Circle
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: localDangerCircle ? 'pointer' : 'not-allowed', opacity: localDangerCircle ? 1 : 0.5 }}>
+                        <input type="checkbox" disabled={!localDangerCircle} checked={localDangerCircle && localSafeArch} onChange={(e) => setLocalSafeArch(e.target.checked)} />
+                        Safe Arch
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={localEnableBomb} onChange={(e) => setLocalEnableBomb(e.target.checked)} />
+                        Center Bomb
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={localEnableMovingBomb} onChange={(e) => setLocalEnableMovingBomb(e.target.checked)} />
+                        Moving Bomb Flag
+                      </label>
+                    </div>
+                    <div className="deduction-settings" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '12px', opacity: 0.8 }}>Points Deduction:</label>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="50" 
+                        value={localPointsDeduction} 
+                        onChange={(e) => setLocalPointsDeduction(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#ff00ff' }}
+                      />
+                      <span style={{ minWidth: '25px', fontWeight: 'bold', color: '#ff00ff' }}>{localPointsDeduction}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="settings-header">
                   <div className="search-actions">
                     <input 
