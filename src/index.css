@@ -174,7 +174,7 @@ body {
   flex-direction: column;
   align-items: flex-end;
   pointer-events: none;
-  z-index: 20;
+  z-index: 60;
 }
 
 .absolute-right>* {
@@ -183,13 +183,13 @@ body {
 
 .settings-toggle-btn {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  bottom: 20px;
+  right: 20px;
   background: transparent;
   border: none;
   font-size: 28px;
   cursor: pointer;
-  z-index: 30;
+  z-index: 9999;
   transition: transform 0.2s;
 }
 
@@ -563,7 +563,7 @@ body {
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .settings-toggle-btn {
-    display: none;
+    display: block;
   }
 
   /* Video box: 50% of screen width, top-left */
