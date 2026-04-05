@@ -101,6 +101,14 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
     } catch (e) {}
     return false; // Default to false? Or true? Let's go with false to avoid crowding by default
   });
+  const [youtubeConfig, setYoutubeConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('collider_youtubeConfig');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { videoId: '', apiKey: '', isConnected: false };
+  });
+  const [lastAddedCountry, setLastAddedCountry] = useState<{ code: string; userName?: string; timestamp: number } | null>(null);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [winner, setWinner] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<'FALL' | 'COLLIDER'>(initialMode);
@@ -124,6 +132,93 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
     setCycle(1);
     leaderboardRef.current = {};
   }, [initialMode]);
+
+  // YouTube Chat Polling
+  useEffect(() => {
+    if (!youtubeConfig.isConnected || !youtubeConfig.videoId || !youtubeConfig.apiKey) return;
+
+    let liveChatId = '';
+    let nextPageToken = '';
+    let isPolling = true;
+
+    const fetchChatId = async () => {
+      try {
+        const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${youtubeConfig.videoId}&part=liveStreamingDetails&key=${youtubeConfig.apiKey}`);
+        const data = await response.json();
+        if (data.items?.[0]?.liveStreamingDetails?.activeLiveChatId) {
+          liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
+          pollChat();
+        } else {
+          console.error('No active live chat found for this video ID.');
+          setYoutubeConfig((prev: any) => ({ ...prev, isConnected: false }));
+        }
+      } catch (e) {
+        console.error('Error fetching chat ID:', e);
+        setYoutubeConfig((prev: any) => ({ ...prev, isConnected: false }));
+      }
+    };
+
+    const pollChat = async () => {
+      if (!isPolling || !liveChatId) return;
+      try {
+        const url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&pageToken=${nextPageToken}&key=${youtubeConfig.apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.items) {
+          data.items.forEach((item: any) => {
+            const message = item.snippet.displayMessage.toLowerCase();
+            // Try to find a country code or name in the message
+            let foundCode = '';
+            
+            // Check exact country codes first
+            if (COUNTRY_CODES.includes(message.trim())) {
+              foundCode = message.trim();
+            } else {
+              // Check country names
+              const matchedCode = COUNTRY_CODES.find(code => {
+                const name = getCountryName(code).toLowerCase();
+                return message.includes(name);
+              });
+              if (matchedCode) foundCode = matchedCode;
+            }
+
+            if (foundCode) {
+              const userName = item.authorDetails?.displayName || 'Viewer';
+              console.log(`Detected country: ${foundCode} from chat user ${userName}: ${message}`);
+              setLastAddedCountry({ code: foundCode, userName, timestamp: Date.now() });
+              // Also add to selection if not there for future rounds
+              setSelectedCountries((prev: string[]) => {
+                if (prev.includes(foundCode)) return prev;
+                const next = [...prev, foundCode];
+                localStorage.setItem(`selectedCountries_${gameMode}`, JSON.stringify(next));
+                return next;
+              });
+            }
+          });
+        }
+
+        nextPageToken = data.nextPageToken || '';
+        const delay = Math.max(data.pollingIntervalMillis || 3000, 3000);
+        setTimeout(pollChat, delay);
+      } catch (e) {
+        console.error('Error polling chat:', e);
+        setTimeout(pollChat, 5000);
+      }
+    };
+
+    fetchChatId();
+
+    return () => {
+      isPolling = false;
+    };
+  }, [youtubeConfig.isConnected, youtubeConfig.videoId, youtubeConfig.apiKey, gameMode]);
+
+  const handleYoutubeToggle = (videoId: string, apiKey: string, connect: boolean) => {
+    const config = { videoId, apiKey, isConnected: connect };
+    setYoutubeConfig(config);
+    localStorage.setItem('collider_youtubeConfig', JSON.stringify(config));
+  };
 
   // Survivor spotlight — all driven by refs, zero React effect chain
   const [spotlightCode, setSpotlightCode] = useState<string | null>(null);
@@ -387,6 +482,8 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
               navigate('/fall');
             }
           }}
+          youtubeConfig={youtubeConfig}
+          onYoutubeToggle={handleYoutubeToggle}
         />
       </div>
 
@@ -400,6 +497,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
             onSurvivorsUpdate={handleSurvivorsUpdate}
             isPaused={isPaused}
             selectedCountries={selectedCountries}
+            lastAddedCountry={lastAddedCountry}
           />
         ) : (
           <FlagCollider
@@ -414,6 +512,7 @@ function GameContainer({ initialMode }: { initialMode: 'FALL' | 'COLLIDER' }) {
             pointsDeduction={pointsDeduction}
             enableBomb={enableBomb}
             enableMovingBomb={enableMovingBomb}
+            lastAddedCountry={lastAddedCountry}
           />
         )}
       </div>

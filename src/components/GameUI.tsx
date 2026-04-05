@@ -17,6 +17,9 @@ interface GameUIProps {
   totalParticipants: number;
   gameMode: 'FALL' | 'COLLIDER';
   setGameMode: (mode: 'FALL' | 'COLLIDER') => void;
+  // YouTube Integration Props
+  youtubeConfig: { videoId: string; apiKey: string; isConnected: boolean };
+  onYoutubeToggle: (videoId: string, apiKey: string, connect: boolean) => void;
 }
 
 export function GameUI({
@@ -34,7 +37,9 @@ export function GameUI({
   alive,
   totalParticipants,
   gameMode,
-  setGameMode
+  setGameMode,
+  youtubeConfig,
+  onYoutubeToggle
 }: GameUIProps) {
   // Sort leaderboard descending by wins
   const sortedLeaderboard = [...leaderboard].sort((a, b) => b.wins - a.wins);
@@ -45,8 +50,11 @@ export function GameUI({
   const [localPointsDeduction, setLocalPointsDeduction] = useState(pointsDeduction);
   const [localEnableBomb, setLocalEnableBomb] = useState(enableBomb);
   const [localEnableMovingBomb, setLocalEnableMovingBomb] = useState(enableMovingBomb);
-  const [settingsTab, setSettingsTab] = useState<'FLAGS'>('FLAGS');
+  const [settingsTab, setSettingsTab] = useState<'FLAGS' | 'YOUTUBE'>('FLAGS');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [vtVideoId, setVtVideoId] = useState(youtubeConfig.videoId);
+  const [vtApiKey, setVtApiKey] = useState(youtubeConfig.apiKey);
 
   useEffect(() => {
     setLocalSelection(selectedCountries);
@@ -88,6 +96,12 @@ export function GameUI({
                 onClick={() => setSettingsTab('FLAGS')}
               >
                 SELECT FLAGS
+              </button>
+              <button 
+                className={`tab sub-tab ${settingsTab === 'YOUTUBE' ? 'active' : ''}`}
+                onClick={() => setSettingsTab('YOUTUBE')}
+              >
+                YOUTUBE CHAT
               </button>
             </div>
 
@@ -174,6 +188,57 @@ export function GameUI({
                   )}
                 </div>
               </>
+            )}
+
+            {settingsTab === 'YOUTUBE' && (
+              <div className="youtube-settings" style={{ padding: '10px' }}>
+                <p style={{ fontSize: '11px', color: '#aaa', marginBottom: '15px' }}>
+                  Enter your YouTube Video ID and API Key to automatically add countries from live chat.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#00ffff' }}>VIDEO ID (e.g. jNQXAC9IVRw)</label>
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="YouTube Video ID..." 
+                      value={vtVideoId}
+                      onChange={(e) => setVtVideoId(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#ff00ff' }}>API KEY (Data API v3)</label>
+                    <input 
+                      type="password" 
+                      className="search-input" 
+                      placeholder="Enter API Key" 
+                      value={vtApiKey}
+                      onChange={(e) => setVtApiKey(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    className={`control-btn ${youtubeConfig.isConnected ? 'pink-btn' : 'cyan-btn'}`}
+                    onClick={() => onYoutubeToggle(vtVideoId, vtApiKey, !youtubeConfig.isConnected)}
+                    style={{ height: '40px', marginTop: '10px' }}
+                  >
+                    {youtubeConfig.isConnected ? 'DISCONNECT' : 'CONNECT CHAT'}
+                  </button>
+                  {youtubeConfig.isConnected && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                      <div className="pulse-dot" style={{ width: '10px', height: '10px', background: '#0f0', borderRadius: '50%' }}></div>
+                      <span style={{ fontSize: '12px', color: '#0f0' }}>Listening for Country Names...</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '13px' }}>How to use:</h4>
+                  <ul style={{ fontSize: '11px', color: '#ccc', paddingLeft: '15px', margin: 0 }}>
+                    <li>Get a free YouTube Data API v3 key from Google Cloud.</li>
+                    <li>Copy the ID from your live stream URL.</li>
+                    <li>Viewers type country names (e.g. "India", "USA") in chat to join!</li>
+                  </ul>
+                </div>
+              </div>
             )}
           </div>
         ) : (

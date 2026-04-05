@@ -9,11 +9,19 @@ interface FlagBattleProps {
   onSurvivorsUpdate?: (survivors: string[]) => void;
   isPaused: boolean;
   selectedCountries?: string[];
+  lastAddedCountry?: { code: string; userName?: string; timestamp: number } | null;
 }
 
 const SPEED = 2;
 
-export function FlagBattle({ onGameOver, onUpdateStats, onSurvivorsUpdate, isPaused, selectedCountries }: FlagBattleProps) {
+export function FlagBattle({ 
+  onGameOver, 
+  onUpdateStats, 
+  onSurvivorsUpdate, 
+  isPaused, 
+  selectedCountries,
+  lastAddedCountry = null
+}: FlagBattleProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ballsRef = useRef<FlagBall[]>([]);
   const requestRef = useRef<number>(0);
@@ -78,6 +86,49 @@ export function FlagBattle({ onGameOver, onUpdateStats, onSurvivorsUpdate, isPau
 
     onUpdateStats(countries.length, {}, countries.length);
   }, []);
+
+  // Handle dynamic additions from YouTube Chat
+  useEffect(() => {
+    if (!lastAddedCountry) return;
+
+    const countryCode = lastAddedCountry.code;
+    
+    // Preload image
+    if (!imagesRef.current.has(countryCode)) {
+      const img = new Image();
+      img.src = getFlagUrl(countryCode);
+      imagesRef.current.set(countryCode, img);
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const isDesktop = window.innerWidth > 768;
+    const dynamicRadius = Math.min(cw, ch) * (isDesktop ? 0.35 : 0.45);
+    const dynamicBallRadius = Math.max(12, dynamicRadius * (isDesktop ? 0.055 : 0.066));
+
+    // Spawn at center or random
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * (dynamicRadius * 0.5);
+
+    ballsRef.current.push({
+      id: `ball-chat-${lastAddedCountry.timestamp}`,
+      countryCode,
+      userName: lastAddedCountry.userName,
+      x: Math.cos(angle) * dist,
+      y: Math.sin(angle) * dist,
+      vx: Math.cos(angle) * SPEED,
+      vy: Math.sin(angle) * SPEED,
+      radius: dynamicBallRadius,
+      isAlive: true,
+      wins: 0,
+      cooldown: 0
+    });
+
+    const aliveCount = ballsRef.current.filter(b => !b.hasExited).length;
+    onUpdateStats(aliveCount, {});
+  }, [lastAddedCountry]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -145,6 +196,17 @@ export function FlagBattle({ onGameOver, onUpdateStats, onSurvivorsUpdate, isPau
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
+
+      // Draw User Name if available
+      if (ball.userName) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(ball.userName, cx + ball.x, cy + ball.y - ball.radius - 12);
+        ctx.shadowBlur = 0;
+      }
     }
   };
 

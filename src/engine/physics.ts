@@ -12,6 +12,7 @@ export interface FlagBall {
   hasExited?: boolean;
   exitOrder?: number;
   isAtRest?: boolean;
+  userName?: string;
 }
 
 // Global exit tracker for culling

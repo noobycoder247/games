@@ -14,6 +14,7 @@ interface FlagColliderProps {
   pointsDeduction?: number;
   enableBomb?: boolean;
   enableMovingBomb?: boolean;
+  lastAddedCountry?: { code: string; userName?: string; timestamp: number } | null;
 }
 
 const SPEED = 2;
@@ -28,7 +29,8 @@ export function FlagCollider({
   enableSafeArch = true,
   pointsDeduction = 10,
   enableBomb = true,
-  enableMovingBomb = false
+  enableMovingBomb = false,
+  lastAddedCountry = null
 }: FlagColliderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ballsRef = useRef<ColliderBall[]>([]);
@@ -96,6 +98,53 @@ export function FlagCollider({
 
     onUpdateStats(countries.length, {}, countries.length);
   }, []);
+
+  // Handle dynamic additions from YouTube Chat
+  useEffect(() => {
+    if (!lastAddedCountry) return;
+
+    // Check if ball already exists (optional: allow multiples? Let's allow one for now or just spawn anyway)
+    // Most streamers like it if multiple people can join, but here we keep it to unique for simplicity or per-request
+    
+    const countryCode = lastAddedCountry.code;
+    
+    // Preload image
+    if (!imagesRef.current.has(countryCode)) {
+      const img = new Image();
+      img.src = getFlagUrl(countryCode);
+      imagesRef.current.set(countryCode, img);
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const isDesktop = window.innerWidth > 768;
+    const dynamicRadius = Math.min(cw, ch) * (isDesktop ? 0.35 : 0.45);
+    const dynamicBallRadius = Math.max(12, dynamicRadius * (isDesktop ? 0.055 : 0.066));
+
+    // Spawn at center or random
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * (dynamicRadius * 0.5); // Spawn in inner half
+
+    ballsRef.current.push({
+      id: `ball-chat-${lastAddedCountry.timestamp}`,
+      countryCode,
+      userName: lastAddedCountry.userName,
+      x: Math.cos(angle) * dist,
+      y: Math.sin(angle) * dist,
+      vx: Math.cos(angle) * SPEED,
+      vy: Math.sin(angle) * SPEED,
+      radius: dynamicBallRadius,
+      isAlive: true,
+      wins: 0,
+      health: 100,
+      cooldown: 90
+    });
+
+    const aliveCount = ballsRef.current.filter(b => b.isAlive && !b.isBomb).length;
+    onUpdateStats(aliveCount, {});
+  }, [lastAddedCountry]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -256,8 +305,10 @@ export function FlagCollider({
       // Draw revolving sword
       ctx.save();
       ctx.translate(cx + ball.x, cy + ball.y);
-      const ballIndex = parseInt(ball.id.split('-')[1] || '0');
-      const swordRotation = (framesRef.current * 0.05) + (ballIndex * 1.5); 
+      
+      // Use fixed offset from ID or code to ensure consistent but varied speeds/offsets
+      const idHash = ball.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const swordRotation = (framesRef.current * 0.05) + (idHash * 0.1); 
       ctx.rotate(swordRotation);
       
       ctx.translate(ball.radius + 15, 0);
@@ -268,6 +319,17 @@ export function FlagCollider({
       ctx.textBaseline = 'middle';
       ctx.fillText("🗡️", 0, 0); 
       ctx.restore();
+
+      // Draw User Name if available
+      if (ball.userName) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(ball.userName, cx + ball.x, cy + ball.y - ball.radius - 15);
+        ctx.shadowBlur = 0;
+      }
     }
   };
 

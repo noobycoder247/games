@@ -11,6 +11,7 @@ export interface ColliderBall {
   health: number;
   cooldown: number; // to prevent multiple damages from the same collision quickly
   isBomb?: boolean;
+  userName?: string;
 }
 
 function resolveCollision(b1: ColliderBall, b2: ColliderBall) {
